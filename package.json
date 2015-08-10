@@ -23,6 +23,6 @@
   },
   "dependencies": {
     "react": "^0.13.3",
-    "react-bootstrap": "^0.24.3",
+    "react-bootstrap": "^0.24.3"
   }
 }
