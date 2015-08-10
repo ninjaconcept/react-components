@@ -28,8 +28,7 @@ export default class NumeralInput extends Component {
     return Numeral(value).format(numeralFormat);
   }
 
-  //TODO fix issue that cursor is behind, when numeral inserts a comma:
-  // containing comas need to be compared to previous amount
+  //TODO fix issue that cursor is behind, when numeral inserts a comma: containing comas need to be compared to previous amount
   _handleInputValueChange(event) {
     let inputField = event.target;
     let caretPosition = jQuery(inputField).caret();

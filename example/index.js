@@ -1,5 +1,5 @@
 import React from "react";
-import Example from "./example/Example";
+import Example from "./Example";
 
 React.render(
   <Example />,
