@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import {Grid, Row} from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.css';
-import NumeralInput from '../modules/NumeralInput';
+import NumeralInput from 'react-numeral-input';
 
 export default class Example extends Component {
   constructor(props) {
