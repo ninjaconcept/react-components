@@ -2,11 +2,11 @@
   "name": "react-component",
   "version": "1.0.0",
   "private": true,
-  "main": "./modules/component.js",
+  "main": "./modules/ReactComponent.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "./scripts/build.sh && webpack-dev-server --hot --devtool cheap-eval-source-map",
-    "build": "./scripts/build.sh"
+    "start": "webpack-dev-server --hot --inline",
+    "build": "rm -rf modules && babel ./src --out-dir ./modules"
   },
   "devDependencies": {
     "babel": "^5.8.21",

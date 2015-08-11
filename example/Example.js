@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import {Grid, Row} from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.css';
+import ReactComponent from './../src/ReactComponent';
 
 export default class Example extends Component {
   constructor(props) {
@@ -14,7 +15,7 @@ export default class Example extends Component {
           <h1>Component-Examples</h1>
         </Row>
         <Row>
-          // put examples here
+          <ReactComponent />
         </Row>
       </Grid>
     );
