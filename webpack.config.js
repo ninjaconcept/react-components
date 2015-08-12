@@ -1,7 +1,8 @@
 module.exports = {
+  context: __dirname + "/example",
   entry: {
-    javascript: "./example/index.js",
-    html: "./example/index.html",
+    javascript: "./index.js",
+    html: "./index.html",
   },
   output: {
     filename: "index.js",
@@ -14,9 +15,9 @@ module.exports = {
         exclude: /node_modules/,
         loaders: ["react-hot", "babel-loader"]
       },
+      { test: /\.html$/, loader: "file?name=[name].[ext]" },
       { test: /\.css$/, loader: "style-loader!css-loader" },
       { test: /\.(png|svg|ttf|woff|woff2|eot)$/, loader: 'url-loader?limit=100000' },
-      { test: /\.html$/, loader: "file?name=[name].[ext]" },
     ],
   },
 }
