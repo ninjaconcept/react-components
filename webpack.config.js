@@ -1,12 +1,12 @@
 module.exports = {
-  context: __dirname + "/example",
+  context: __dirname + "/site",
   entry: {
     javascript: "./index.js",
-    html: "./index.html",
+    html: "./index.html"
   },
   output: {
     filename: "index.js",
-    path: __dirname + "/dist",
+    path: __dirname + "/dist"
   },
   module: {
     loaders: [
@@ -17,7 +17,7 @@ module.exports = {
       },
       { test: /\.html$/, loader: "file?name=[name].[ext]" },
       { test: /\.css$/, loader: "style-loader!css-loader" },
-      { test: /\.(png|svg|ttf|woff|woff2|eot)$/, loader: 'url-loader?limit=100000' },
-    ],
-  },
-}
+      { test: /\.(png|svg|ttf|woff|woff2|eot)$/, loader: 'url-loader?limit=100000' }
+    ]
+  }
+};

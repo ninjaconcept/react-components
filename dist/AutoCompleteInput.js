@@ -22,6 +22,10 @@ var _react2 = _interopRequireDefault(_react);
 
 var _reactBootstrap = require('react-bootstrap');
 
+var _debounce = require('debounce');
+
+var _debounce2 = _interopRequireDefault(_debounce);
+
 var AutoCompleteInput = (function (_Component) {
   _inherits(AutoCompleteInput, _Component);
 
@@ -31,52 +35,28 @@ var AutoCompleteInput = (function (_Component) {
     _get(Object.getPrototypeOf(AutoCompleteInput.prototype), 'constructor', this).call(this, props);
     this.state = {
       value: '',
-      valueBeforeUpDown: null,
+      valueBeforeFocus: null,
       showSuggestions: false,
       suggestions: null,
-      suggestionFocus: 0
+      suggestionFocus: null,
+      inputWidth: 0
     };
+    this._getSuggestions = (0, _debounce2['default'])(props.suggestions, 200);
   }
 
   _createClass(AutoCompleteInput, [{
-    key: '_showSuggestions',
-    value: function _showSuggestions(input) {
-      var suggestions = this.props.suggestions;
-
-      if (!input) {
-        this.setState({ showSuggestions: false });
-      } else {
+    key: 'componentDidMount',
+    value: function componentDidMount() {
+      var input = _react2['default'].findDOMNode(this.refs.input);
+      if (input) {
         this.setState({
-          showSuggestions: true
+          inputWidth: input.offsetWidth
         });
       }
     }
   }, {
-    key: '_handleValueChange',
-    value: function _handleValueChange() {
-      var newState = {};
-      var value = event.target.value;
-
-      if (!value) {
-        newState.showSuggestions = true;
-        newState.suggestions = null;
-        newState.valueBeforeUpDown = null;
-        newState.suggestionFocus = 0;
-      } else {
-        var suggestionsCallback = this.props.suggestionsCallback;
-
-        //TODO debounce
-        var suggestions = suggestionsCallback(value);
-        if (suggestions) {
-          newState.suggestions = suggestions;
-          newState.showSuggestions = true;
-        }
-      }
-      this.setState(newState);
-    }
-  }, {
-    key: '_getNextSuggestionIndex',
-    value: function _getNextSuggestionIndex() {
+    key: 'getNextSuggestionIndex',
+    value: function getNextSuggestionIndex() {
       var _state = this.state;
       var suggestions = _state.suggestions;
       var suggestionFocus = _state.suggestionFocus;
@@ -92,8 +72,8 @@ var AutoCompleteInput = (function (_Component) {
       return result;
     }
   }, {
-    key: '_getPreviousSuggestionIndex',
-    value: function _getPreviousSuggestionIndex() {
+    key: 'getPreviousSuggestionIndex',
+    value: function getPreviousSuggestionIndex() {
       var _state2 = this.state;
       var suggestions = _state2.suggestions;
       var suggestionFocus = _state2.suggestionFocus;
@@ -109,44 +89,104 @@ var AutoCompleteInput = (function (_Component) {
       return result;
     }
   }, {
-    key: '_focusSuggestionUsingKeyboard',
-    value: function _focusSuggestionUsingKeyboard(direction) {
+    key: 'focusSuggestionUsingKeyboard',
+    value: function focusSuggestionUsingKeyboard(direction) {
+      var suggestionFocus = undefined;
+      if (direction == 'up') {
+        suggestionFocus = this.getPreviousSuggestionIndex();
+      } else if (direction == 'down') {
+        suggestionFocus = this.getNextSuggestionIndex();
+      }
+      this.focusSuggestion(suggestionFocus);
+      this.setState({ suggestionFocus: suggestionFocus });
+    }
+  }, {
+    key: 'focusSuggestionUsingMouse',
+    value: function focusSuggestionUsingMouse(index) {
+      this.focusSuggestion(index);
+      this.setState({ suggestionFocus: index });
+    }
+  }, {
+    key: 'focusSuggestion',
+    value: function focusSuggestion(newFocus) {
       var _state3 = this.state;
-      var value = _state3.value;
-      var valueBeforeUpDown = _state3.valueBeforeUpDown;
       var suggestions = _state3.suggestions;
+      var suggestionFocus = _state3.suggestionFocus;
+      var value = _state3.value;
+      var valueBeforeFocus = _state3.valueBeforeFocus;
 
       var newState = {};
-      if (!valueBeforeUpDown) {
-        newState.valueBeforeUpDown = value;
+      if (!valueBeforeFocus) {
+        newState.valueBeforeFocus = value;
       }
-      if (direction == 'up') {
-        newState.suggestionFocus = this.getPreviousSuggestionIndex();
-      } else if (direction == 'down') {
-        newState.suggestionFocus = this.getNextSuggestionIndex();
-      }
-      newState.value = suggestions[newState.suggestionFocus];
+      newState.value = suggestions[newFocus];
+      _react2['default'].findDOMNode(this.refs['suggestion_' + suggestionFocus]).classList.remove('active');
+      _react2['default'].findDOMNode(this.refs['suggestion_' + newFocus]).classList.add('active');
       this.setState(newState);
     }
   }, {
-    key: '_handleKeyDown',
-    value: function _handleKeyDown() {
+    key: 'resetComponent',
+    value: function resetComponent() {
+      this.setState({
+        value: '',
+        valueBeforeFocus: null,
+        showSuggestions: false,
+        suggestions: null,
+        suggestionFocus: null
+      });
+    }
+  }, {
+    key: 'fetchSuggestions',
+    value: function fetchSuggestions(value) {
+      var _this = this;
+
+      this._getSuggestions(value, function (result) {
+        var newState = {};
+        if (result && result.length > 0) {
+          newState.suggestions = result;
+          newState.suggestionFocus = result.length - 1;
+          newState.showSuggestions = true;
+        } else {
+          newState.suggestions = null;
+          newState.suggestionFocus = null;
+          newState.showSuggestions = false;
+        }
+        _this.setState(newState);
+      });
+    }
+  }, {
+    key: 'handleValueChange',
+    value: function handleValueChange() {
+      var value = event.target.value;
+
+      if (!value) {
+        this.resetComponent();
+      } else {
+        this.setState({ value: value });
+        this.fetchSuggestions(value);
+      }
+    }
+  }, {
+    key: 'handleKeyDown',
+    value: function handleKeyDown() {
       var _state4 = this.state;
-      var valueBeforeUpDown = _state4.valueBeforeUpDown;
+      var valueBeforeFocus = _state4.valueBeforeFocus;
       var showSuggestions = _state4.showSuggestions;
+      var suggestions = _state4.suggestions;
 
       var newState = {};
       switch (event.keyCode) {
         case 13:
           // Enter
-          newState.valueBeforeUpDown = null;
+          newState.valueBeforeFocus = null;
           newState.showSuggestions = false;
           event.preventDefault();
           break;
         case 27:
           // ESC
-          newState.value = valueBeforeUpDown;
-          newState.valueBeforeUpDown = null;
+          newState.value = valueBeforeFocus;
+          newState.valueBeforeFocus = null;
+          newState.suggestionFocus = suggestions.length - 1;
           event.preventDefault();
           break;
         case 38:
@@ -160,7 +200,7 @@ var AutoCompleteInput = (function (_Component) {
           // Down
           if (showSuggestions) {
             this.focusSuggestionUsingKeyboard('down');
-          } else {
+          } else if (suggestions) {
             newState.showSuggestions = true;
           }
           event.preventDefault();
@@ -169,21 +209,21 @@ var AutoCompleteInput = (function (_Component) {
       this.setState(newState);
     }
   }, {
-    key: '_selectSuggestionUsingClick',
-    value: function _selectSuggestionUsingClick(suggestionsIndex) {
+    key: 'selectSuggestionUsingClick',
+    value: function selectSuggestionUsingClick(suggestionsIndex) {
       var suggestions = this.state.suggestions;
 
       this.setState({
         value: suggestions[suggestionsIndex],
         suggestionFocus: suggestionsIndex,
         showSuggestions: false,
-        valueBeforeUpDown: null
+        valueBeforeFocus: null
       });
     }
   }, {
-    key: '_renderSuggestions',
-    value: function _renderSuggestions() {
-      var _this = this;
+    key: 'renderSuggestions',
+    value: function renderSuggestions() {
+      var _this2 = this;
 
       var suggestions = this.state.suggestions;
 
@@ -195,9 +235,13 @@ var AutoCompleteInput = (function (_Component) {
             return _react2['default'].createElement(
               _reactBootstrap.ListGroupItem,
               { onClick: function () {
-                  return _this.selectSuggestionUsingClick(index);
+                  return _this2.selectSuggestionUsingClick(index);
                 },
-                key: 'suggestion_' + index },
+                onMouseEnter: function () {
+                  return _this2.focusSuggestionUsingMouse(index);
+                },
+                key: 'suggestion_' + index,
+                ref: 'suggestion_' + index },
               suggestion
             );
           })
@@ -206,19 +250,20 @@ var AutoCompleteInput = (function (_Component) {
         return _react2['default'].createElement('div', null);
       }
     }
-
-    // TODO dynamic width
   }, {
     key: 'render',
     value: function render() {
-      var _this2 = this;
+      var _this3 = this;
 
       var _state5 = this.state;
       var value = _state5.value;
       var showSuggestions = _state5.showSuggestions;
+      var inputWidth = _state5.inputWidth;
 
       var suggestionsStyle = {
-        position: 'absolute'
+        position: 'absolute',
+        width: inputWidth,
+        marginLeft: 15
       };
       return _react2['default'].createElement(
         'div',
@@ -229,10 +274,10 @@ var AutoCompleteInput = (function (_Component) {
           autoComplete: 'off',
           ref: 'input',
           onChange: function () {
-            return _this2.handleValueChange();
+            return _this3.handleValueChange();
           },
           onKeyDown: function () {
-            return _this2.handleKeyDown();
+            return _this3.handleKeyDown();
           }
         })),
         _react2['default'].createElement(
@@ -240,29 +285,21 @@ var AutoCompleteInput = (function (_Component) {
           {
             show: showSuggestions,
             onHide: function () {
-              return _this2.setState({ showSuggestions: false });
+              return _this3.setState({ showSuggestions: false });
             },
             placement: 'bottom',
             container: this,
             rootClose: true,
             target: function (props) {
-              return _react2['default'].findDOMNode(_this2.refs.input);
+              return _react2['default'].findDOMNode(_this3.refs.input);
             } },
           _react2['default'].createElement(
-            _reactBootstrap.Grid,
+            'div',
             { style: suggestionsStyle },
             _react2['default'].createElement(
-              _reactBootstrap.Row,
+              _reactBootstrap.ListGroup,
               null,
-              _react2['default'].createElement(
-                _reactBootstrap.Col,
-                { md: 6 },
-                _react2['default'].createElement(
-                  _reactBootstrap.ListGroup,
-                  null,
-                  this.renderSuggestions()
-                )
-              )
+              this.renderSuggestions()
             )
           )
         )
