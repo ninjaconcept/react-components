@@ -263,7 +263,8 @@ var AutoCompleteInput = (function (_Component) {
       var suggestionsStyle = {
         position: 'absolute',
         width: inputWidth,
-        marginLeft: 15
+        marginLeft: 15,
+        zIndex: 2
       };
       return _react2['default'].createElement(
         'div',
