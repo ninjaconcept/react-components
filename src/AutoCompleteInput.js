@@ -183,7 +183,8 @@ export default class AutoCompleteInput extends Component {
     let suggestionsStyle = {
       position: 'absolute',
       width: inputWidth,
-      marginLeft: 15
+      marginLeft: 15,
+      zIndex: 2
     };
     return (
       <div>
