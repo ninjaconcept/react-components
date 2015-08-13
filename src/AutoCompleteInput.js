@@ -20,7 +20,8 @@ export default class AutoCompleteInput extends Component {
     let input = React.findDOMNode(this.refs.input);
     if (input) {
       this.setState({
-        inputWidth: input.offsetWidth
+        inputWidth: input.offsetWidth,
+        inputHeight: input.offsetHeight
       });
     }
   }
@@ -179,10 +180,11 @@ export default class AutoCompleteInput extends Component {
   }
 
   render() {
-    let {value, showSuggestions, inputWidth} = this.state;
+    let {value, showSuggestions, inputWidth, inputHeight} = this.state;
     let suggestionsStyle = {
       position: 'absolute',
       width: inputWidth,
+      top: inputHeight,
       marginLeft: 15,
       zIndex: 2
     };
@@ -213,3 +215,5 @@ export default class AutoCompleteInput extends Component {
     );
   }
 }
+
+
