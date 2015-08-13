@@ -265,8 +265,8 @@ var AutoCompleteInput = (function (_Component) {
       var suggestionsStyle = {
         position: 'absolute',
         width: inputWidth,
-        top: inputHeight,
-        marginLeft: 15,
+        marginTop: -15,
+        marginLeft: 0,
         zIndex: 2
       };
       return _react2['default'].createElement(
@@ -293,10 +293,7 @@ var AutoCompleteInput = (function (_Component) {
             },
             placement: 'bottom',
             container: this,
-            rootClose: true,
-            target: function (props) {
-              return _react2['default'].findDOMNode(_this3.refs.input);
-            } },
+            rootClose: true },
           _react2['default'].createElement(
             'div',
             { style: suggestionsStyle },

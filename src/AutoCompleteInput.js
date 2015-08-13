@@ -184,8 +184,8 @@ export default class AutoCompleteInput extends Component {
     let suggestionsStyle = {
       position: 'absolute',
       width: inputWidth,
-      top: inputHeight,
-      marginLeft: 15,
+      marginTop: -15,
+      marginLeft: 0,
       zIndex: 2
     };
     return (
@@ -203,8 +203,7 @@ export default class AutoCompleteInput extends Component {
           onHide={() => this.setState({ showSuggestions: false })}
           placement='bottom'
           container={this}
-          rootClose={true}
-          target={ props => React.findDOMNode(this.refs.input)}>
+          rootClose={true}>
           <div style={suggestionsStyle}>
             <ListGroup>
               {this.renderSuggestions()}

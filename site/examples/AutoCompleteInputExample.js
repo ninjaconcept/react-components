@@ -9,7 +9,8 @@ export default class AutoCompleteInputExample extends Component {
   render() {
     let inputAttributes = {
       placeholder: 'Search for food...',
-      label: 'Food'
+      label: 'Food',
+      bsSize: 'large'
     };
     let foods = ['Cheese', 'Bread', 'Noodles', 'Beans', 'Berries'];
     let getSuggestions = (input, callback) => {
