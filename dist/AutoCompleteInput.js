@@ -50,8 +50,7 @@ var AutoCompleteInput = (function (_Component) {
       var input = _react2['default'].findDOMNode(this.refs.input);
       if (input) {
         this.setState({
-          inputWidth: input.offsetWidth,
-          inputHeight: input.offsetHeight
+          inputWidth: input.offsetWidth
         });
       }
     }
@@ -260,9 +259,8 @@ var AutoCompleteInput = (function (_Component) {
       var value = _state5.value;
       var showSuggestions = _state5.showSuggestions;
       var inputWidth = _state5.inputWidth;
-      var inputHeight = _state5.inputHeight;
 
-      var suggestionsStyle = {
+      var containerStyle = {
         position: 'absolute',
         width: inputWidth,
         marginTop: -15,
@@ -296,10 +294,10 @@ var AutoCompleteInput = (function (_Component) {
             rootClose: true },
           _react2['default'].createElement(
             'div',
-            { style: suggestionsStyle },
+            { style: containerStyle },
             _react2['default'].createElement(
               _reactBootstrap.ListGroup,
-              null,
+              this.props.suggestionsAttributes,
               this.renderSuggestions()
             )
           )

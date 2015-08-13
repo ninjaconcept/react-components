@@ -21,7 +21,6 @@ export default class AutoCompleteInput extends Component {
     if (input) {
       this.setState({
         inputWidth: input.offsetWidth,
-        inputHeight: input.offsetHeight
       });
     }
   }
@@ -180,8 +179,8 @@ export default class AutoCompleteInput extends Component {
   }
 
   render() {
-    let {value, showSuggestions, inputWidth, inputHeight} = this.state;
-    let suggestionsStyle = {
+    let {value, showSuggestions, inputWidth} = this.state;
+    let containerStyle = {
       position: 'absolute',
       width: inputWidth,
       marginTop: -15,
@@ -204,8 +203,8 @@ export default class AutoCompleteInput extends Component {
           placement='bottom'
           container={this}
           rootClose={true}>
-          <div style={suggestionsStyle}>
-            <ListGroup>
+          <div style={containerStyle}>
+            <ListGroup {...this.props.suggestionsAttributes}>
               {this.renderSuggestions()}
             </ListGroup>
           </div>
