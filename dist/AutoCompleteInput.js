@@ -22,9 +22,9 @@ var _react2 = _interopRequireDefault(_react);
 
 var _reactBootstrap = require('react-bootstrap');
 
-var _debounce = require('debounce');
+var _es6PromiseDebounce = require('es6-promise-debounce');
 
-var _debounce2 = _interopRequireDefault(_debounce);
+var _es6PromiseDebounce2 = _interopRequireDefault(_es6PromiseDebounce);
 
 var AutoCompleteInput = (function (_Component) {
   _inherits(AutoCompleteInput, _Component);
@@ -39,14 +39,19 @@ var AutoCompleteInput = (function (_Component) {
       showSuggestions: false,
       suggestions: null,
       suggestionFocus: null,
+      error: '',
       inputWidth: 0
     };
-    this._getSuggestions = (0, _debounce2['default'])(props.suggestions, 200);
   }
 
   _createClass(AutoCompleteInput, [{
     key: 'componentDidMount',
     value: function componentDidMount() {
+      this.initInputWidth();
+    }
+  }, {
+    key: 'initInputWidth',
+    value: function initInputWidth() {
       var input = _react2['default'].findDOMNode(this.refs.input);
       if (input) {
         this.setState({
@@ -66,8 +71,7 @@ var AutoCompleteInput = (function (_Component) {
       if (suggestions[nextSuggestionIndex]) {
         result = nextSuggestionIndex;
       } else {
-        // previous suggestion was last in list, so use first one
-        result = 0;
+        result = 0; // previous suggestion was first in list, so use last one
       }
       return result;
     }
@@ -83,8 +87,7 @@ var AutoCompleteInput = (function (_Component) {
       if (suggestions[previousSuggestionIndex]) {
         result = previousSuggestionIndex;
       } else {
-        // previous suggestion was first in list, so use last one
-        result = suggestions.length - 1;
+        result = suggestions.length - 1; // previous suggestion was first in list, so use last one
       }
       return result;
     }
@@ -101,12 +104,6 @@ var AutoCompleteInput = (function (_Component) {
       this.setState({ suggestionFocus: suggestionFocus });
     }
   }, {
-    key: 'focusSuggestionUsingMouse',
-    value: function focusSuggestionUsingMouse(index) {
-      this.focusSuggestion(index);
-      this.setState({ suggestionFocus: index });
-    }
-  }, {
     key: 'focusSuggestion',
     value: function focusSuggestion(newFocus) {
       var _state3 = this.state;
@@ -119,7 +116,8 @@ var AutoCompleteInput = (function (_Component) {
       if (!valueBeforeFocus) {
         newState.valueBeforeFocus = value;
       }
-      newState.value = suggestions[newFocus];
+      newState.value = suggestions[newFocus].name;
+      newState.suggestionFocus = newFocus;
       _react2['default'].findDOMNode(this.refs['suggestion_' + suggestionFocus]).classList.remove('active');
       _react2['default'].findDOMNode(this.refs['suggestion_' + newFocus]).classList.add('active');
       this.setState(newState);
@@ -132,7 +130,8 @@ var AutoCompleteInput = (function (_Component) {
         valueBeforeFocus: null,
         showSuggestions: false,
         suggestions: null,
-        suggestionFocus: null
+        suggestionFocus: null,
+        error: ''
       });
     }
   }, {
@@ -140,23 +139,27 @@ var AutoCompleteInput = (function (_Component) {
     value: function fetchSuggestions(value) {
       var _this = this;
 
-      this._getSuggestions(value, function (result) {
+      var debounced = (0, _es6PromiseDebounce2['default'])(this.props.suggestions, 200);
+      debounced(value).then(function (result) {
         var newState = {};
-        if (result && result.length > 0) {
+        if (result.length > 0) {
           newState.suggestions = result;
           newState.suggestionFocus = result.length - 1;
           newState.showSuggestions = true;
         } else {
           newState.suggestions = null;
+          newState.error = "Nothing was found.";
           newState.suggestionFocus = null;
-          newState.showSuggestions = false;
+          newState.showSuggestions = true;
         }
         _this.setState(newState);
+      })['catch'](function (error) {
+        return console.log(error);
       });
     }
   }, {
     key: 'handleValueChange',
-    value: function handleValueChange() {
+    value: function handleValueChange(event) {
       var value = event.target.value;
 
       if (!value) {
@@ -168,37 +171,37 @@ var AutoCompleteInput = (function (_Component) {
     }
   }, {
     key: 'handleKeyDown',
-    value: function handleKeyDown() {
+    value: function handleKeyDown(event) {
       var _state4 = this.state;
+      var value = _state4.value;
       var valueBeforeFocus = _state4.valueBeforeFocus;
       var showSuggestions = _state4.showSuggestions;
+      var error = _state4.error;
       var suggestions = _state4.suggestions;
+      var onSelectionChange = this.props.onSelectionChange;
 
       var newState = {};
       switch (event.keyCode) {
         case 13:
           // Enter
-          newState.valueBeforeFocus = null;
-          newState.showSuggestions = false;
+          this.selectSuggestion();
           event.preventDefault();
           break;
         case 27:
           // ESC
-          newState.value = valueBeforeFocus;
-          newState.valueBeforeFocus = null;
-          newState.suggestionFocus = suggestions.length - 1;
+          this.abortAutoSelection();
           event.preventDefault();
           break;
         case 38:
           // Up
-          if (showSuggestions) {
+          if (showSuggestions && !error) {
             this.focusSuggestionUsingKeyboard('up');
           }
           event.preventDefault();
           break;
         case 40:
           // Down
-          if (showSuggestions) {
+          if (showSuggestions && !error) {
             this.focusSuggestionUsingKeyboard('down');
           } else if (suggestions) {
             newState.showSuggestions = true;
@@ -209,15 +212,29 @@ var AutoCompleteInput = (function (_Component) {
       this.setState(newState);
     }
   }, {
-    key: 'selectSuggestionUsingClick',
-    value: function selectSuggestionUsingClick(suggestionsIndex) {
-      var suggestions = this.state.suggestions;
+    key: 'selectSuggestion',
+    value: function selectSuggestion() {
+      var _state5 = this.state;
+      var suggestions = _state5.suggestions;
+      var suggestionFocus = _state5.suggestionFocus;
+      var onSelectionChange = this.props.onSelectionChange;
 
       this.setState({
-        value: suggestions[suggestionsIndex],
-        suggestionFocus: suggestionsIndex,
         showSuggestions: false,
         valueBeforeFocus: null
+      });
+      onSelectionChange(suggestions[suggestionFocus]);
+    }
+  }, {
+    key: 'abortAutoSelection',
+    value: function abortAutoSelection() {
+      var valueBeforeFocus = this.state.valueBeforeFocus;
+
+      this.setState({
+        showSuggestions: false,
+        value: valueBeforeFocus,
+        valueBeforeFocus: null,
+        suggestionFocus: null
       });
     }
   }, {
@@ -225,7 +242,9 @@ var AutoCompleteInput = (function (_Component) {
     value: function renderSuggestions() {
       var _this2 = this;
 
-      var suggestions = this.state.suggestions;
+      var _state6 = this.state;
+      var suggestions = _state6.suggestions;
+      var error = _state6.error;
 
       if (suggestions) {
         return _react2['default'].createElement(
@@ -235,16 +254,23 @@ var AutoCompleteInput = (function (_Component) {
             return _react2['default'].createElement(
               _reactBootstrap.ListGroupItem,
               { onClick: function () {
-                  return _this2.selectSuggestionUsingClick(index);
+                  return _this2.selectSuggestion();
                 },
                 onMouseEnter: function () {
-                  return _this2.focusSuggestionUsingMouse(index);
+                  return _this2.focusSuggestion(index);
                 },
                 key: 'suggestion_' + index,
-                ref: 'suggestion_' + index },
-              suggestion
+                ref: 'suggestion_' + index,
+                header: suggestion.name },
+              suggestion.type
             );
           })
+        );
+      } else if (error) {
+        return _react2['default'].createElement(
+          _reactBootstrap.ListGroupItem,
+          null,
+          error
         );
       } else {
         return _react2['default'].createElement('div', null);
@@ -255,10 +281,10 @@ var AutoCompleteInput = (function (_Component) {
     value: function render() {
       var _this3 = this;
 
-      var _state5 = this.state;
-      var value = _state5.value;
-      var showSuggestions = _state5.showSuggestions;
-      var inputWidth = _state5.inputWidth;
+      var _state7 = this.state;
+      var value = _state7.value;
+      var showSuggestions = _state7.showSuggestions;
+      var inputWidth = _state7.inputWidth;
 
       var containerStyle = {
         position: 'absolute',
@@ -275,11 +301,11 @@ var AutoCompleteInput = (function (_Component) {
           value: value,
           autoComplete: 'off',
           ref: 'input',
-          onChange: function () {
-            return _this3.handleValueChange();
+          onChange: function (event) {
+            return _this3.handleValueChange(event);
           },
-          onKeyDown: function () {
-            return _this3.handleKeyDown();
+          onKeyDown: function (event) {
+            return _this3.handleKeyDown(event);
           }
         })),
         _react2['default'].createElement(
@@ -287,7 +313,7 @@ var AutoCompleteInput = (function (_Component) {
           {
             show: showSuggestions,
             onHide: function () {
-              return _this3.setState({ showSuggestions: false });
+              return _this3.abortAutoSelection();
             },
             placement: 'bottom',
             container: this,

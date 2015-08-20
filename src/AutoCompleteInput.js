@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import {Input, Overlay, ListGroup, ListGroupItem} from 'react-bootstrap';
-import debounce from 'debounce';
+import debounce from 'es6-promise-debounce';
 
 export default class AutoCompleteInput extends Component {
   constructor(props) {
@@ -11,16 +11,20 @@ export default class AutoCompleteInput extends Component {
       showSuggestions: false,
       suggestions: null,
       suggestionFocus: null,
+      error: '',
       inputWidth: 0
     };
-    this._getSuggestions = debounce(props.suggestions, 200);
   }
 
   componentDidMount() {
+    this.initInputWidth();
+  }
+
+  initInputWidth() {
     let input = React.findDOMNode(this.refs.input);
-    if (input) {
+    if(input) {
       this.setState({
-        inputWidth: input.offsetWidth,
+        inputWidth: input.offsetWidth
       });
     }
   }
@@ -29,11 +33,10 @@ export default class AutoCompleteInput extends Component {
     let {suggestions, suggestionFocus} = this.state;
     let result;
     let nextSuggestionIndex = suggestionFocus + 1;
-    if (suggestions[nextSuggestionIndex]) {
+    if(suggestions[nextSuggestionIndex]) {
       result = nextSuggestionIndex;
     } else {
-      // previous suggestion was last in list, so use first one
-      result = 0;
+      result = 0; // previous suggestion was first in list, so use last one
     }
     return result;
   }
@@ -42,38 +45,33 @@ export default class AutoCompleteInput extends Component {
     let {suggestions, suggestionFocus} = this.state;
     let result;
     let previousSuggestionIndex = suggestionFocus - 1;
-    if (suggestions[previousSuggestionIndex]) {
+    if(suggestions[previousSuggestionIndex]) {
       result = previousSuggestionIndex;
     } else {
-      // previous suggestion was first in list, so use last one
-      result = suggestions.length - 1;
+      result = suggestions.length - 1; // previous suggestion was first in list, so use last one
     }
     return result;
   }
 
   focusSuggestionUsingKeyboard(direction) {
     let suggestionFocus;
-    if (direction == 'up') {
+    if(direction == 'up') {
       suggestionFocus = this.getPreviousSuggestionIndex();
-    } else if (direction == 'down') {
+    } else if(direction == 'down') {
       suggestionFocus = this.getNextSuggestionIndex();
     }
     this.focusSuggestion(suggestionFocus);
     this.setState({suggestionFocus: suggestionFocus});
   }
 
-  focusSuggestionUsingMouse(index) {
-    this.focusSuggestion(index);
-    this.setState({suggestionFocus: index});
-  }
-
   focusSuggestion(newFocus) {
     let {suggestions, suggestionFocus, value, valueBeforeFocus} = this.state;
     let newState = {};
-    if (! valueBeforeFocus) {
+    if(!valueBeforeFocus) {
       newState.valueBeforeFocus = value;
     }
-    newState.value = suggestions[newFocus];
+    newState.value = suggestions[newFocus].name;
+    newState.suggestionFocus = newFocus;
     React.findDOMNode(this.refs['suggestion_' + suggestionFocus]).classList.remove('active');
     React.findDOMNode(this.refs['suggestion_' + newFocus]).classList.add('active');
     this.setState(newState);
@@ -85,29 +83,32 @@ export default class AutoCompleteInput extends Component {
       valueBeforeFocus: null,
       showSuggestions: false,
       suggestions: null,
-      suggestionFocus: null
+      suggestionFocus: null,
+      error: ''
     });
   }
 
   fetchSuggestions(value) {
-    this._getSuggestions(value, result => {
+    let debounced = debounce(this.props.suggestions, 200);
+    debounced(value).then(result => {
       let newState = {};
-      if (result && result.length > 0) {
+      if(result.length > 0) {
         newState.suggestions = result;
         newState.suggestionFocus = result.length - 1;
         newState.showSuggestions = true;
       } else {
         newState.suggestions = null;
+        newState.error = "Nothing was found.";
         newState.suggestionFocus = null;
-        newState.showSuggestions = false;
+        newState.showSuggestions = true;
       }
       this.setState(newState);
-    });
+    }).catch(error => console.log(error));
   }
 
-  handleValueChange() {
+  handleValueChange(event) {
     let {value} = event.target;
-    if (! value) {
+    if(!value) {
       this.resetComponent();
     } else {
       this.setState({value: value});
@@ -115,31 +116,29 @@ export default class AutoCompleteInput extends Component {
     }
   }
 
-  handleKeyDown() {
-    let {valueBeforeFocus, showSuggestions, suggestions} = this.state;
+  handleKeyDown(event) {
+    let {value, valueBeforeFocus, showSuggestions, error, suggestions} = this.state;
+    let {onSelectionChange} = this.props;
     let newState = {};
-    switch (event.keyCode) {
+    switch(event.keyCode) {
       case 13: // Enter
-        newState.valueBeforeFocus = null;
-        newState.showSuggestions = false;
+        this.selectSuggestion();
         event.preventDefault();
         break;
       case 27: // ESC
-        newState.value = valueBeforeFocus;
-        newState.valueBeforeFocus = null;
-        newState.suggestionFocus = suggestions.length - 1;
+        this.abortAutoSelection();
         event.preventDefault();
         break;
       case 38: // Up
-        if (showSuggestions) {
+        if(showSuggestions && !error) {
           this.focusSuggestionUsingKeyboard('up');
         }
         event.preventDefault();
         break;
       case 40: // Down
-        if (showSuggestions) {
+        if(showSuggestions && !error) {
           this.focusSuggestionUsingKeyboard('down');
-        } else if (suggestions) {
+        } else if(suggestions) {
           newState.showSuggestions = true;
         }
         event.preventDefault();
@@ -148,29 +147,45 @@ export default class AutoCompleteInput extends Component {
     this.setState(newState);
   }
 
-  selectSuggestionUsingClick(suggestionsIndex) {
-    let {suggestions} = this.state;
+  selectSuggestion() {
+    let {suggestions, suggestionFocus} = this.state;
+    let {onSelectionChange} = this.props;
     this.setState({
-      value: suggestions[suggestionsIndex],
-      suggestionFocus: suggestionsIndex,
       showSuggestions: false,
       valueBeforeFocus: null
+    });
+    onSelectionChange(suggestions[suggestionFocus]);
+  }
+
+  abortAutoSelection() {
+    let {valueBeforeFocus} = this.state;
+    this.setState({
+      showSuggestions: false,
+      value: valueBeforeFocus,
+      valueBeforeFocus: null,
+      suggestionFocus: null
     });
   }
 
   renderSuggestions() {
-    let {suggestions} = this.state;
-    if (suggestions) {
+    let {suggestions, error} = this.state;
+    if(suggestions) {
       return (
         <div>
           {suggestions.map((suggestion, index) => {
-            return <ListGroupItem onClick={() => this.selectSuggestionUsingClick(index)}
-                                  onMouseEnter={() => this.focusSuggestionUsingMouse(index)}
-                                  key={'suggestion_' + index}
-                                  ref={'suggestion_' + index}>{suggestion}</ListGroupItem>;
+            return ( <ListGroupItem onClick={() => this.selectSuggestion()}
+                                    onMouseEnter={() => this.focusSuggestion(index)}
+                                    key={'suggestion_' + index}
+                                    ref={'suggestion_' + index}
+                                    header={suggestion.name}>
+                {suggestion.type}
+              </ListGroupItem>
+            );
           })}
         </div>
       );
+    } else if(error) {
+      return <ListGroupItem>{error}</ListGroupItem>;
     } else {
       return (
         <div></div>
@@ -194,12 +209,12 @@ export default class AutoCompleteInput extends Component {
           value={value}
           autoComplete='off'
           ref='input'
-          onChange={() => this.handleValueChange()}
-          onKeyDown={() => this.handleKeyDown()}
+          onChange={event => this.handleValueChange(event)}
+          onKeyDown={event => this.handleKeyDown(event)}
           />
         <Overlay
           show={showSuggestions}
-          onHide={() => this.setState({ showSuggestions: false })}
+          onHide={() => this.abortAutoSelection()}
           placement='bottom'
           container={this}
           rootClose={true}>
